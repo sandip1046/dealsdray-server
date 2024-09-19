@@ -20,7 +20,7 @@ cloudinary.config({
 const App = express();
 
 App.use(cors({
-    origin: ["http://localhost:5173"],
+    origin: ["https://dealsdray-client.vercel.app/"],
     credentials: true,
 }));
 App.use(express.json({ limit: "50mb" }));
