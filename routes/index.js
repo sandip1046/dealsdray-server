@@ -8,17 +8,9 @@ import jwt from "jsonwebtoken";
 
 const router = Router();
 
-// router.use("/user", userRouter);
-
-
-
-
-
 
 //creating the schema for zod validation
 const schema_signup = zod.object({
-
-    // username: zod.string().min(5,{ message: "Must be 5 or more characters long" }).max(30,{ message: "Must be 30 or fewer characters long" }),
     UserName: zod.string().min(6, { message: "Invalid username address" }),
     password: zod.string().min(6, { message: "Must be 6 or more characters long" }).max(20,"Password must be in between 6 and 20 length")
 });
@@ -64,61 +56,65 @@ const schema_signin = zod.object({
     password: zod.string().min(6, { message: "Must be 6 or more characters long" })
 })
 //now creating signin routes
+// router.post("/user/signin", async (req, res) => {
+//     //doing the zod validation
+//     const sucess = schema_signin.safeParse(req.body);
+//     if (!sucess) {
+//         return res.status(411).json({
+//             message: "Error while logging in"
+//         })
+//     }
+//     else {
+//         const checkCredential = await User.findOne({
+//             UserName: req.body.UserName,
+//             password: req.body.password
+//         })
+//         if (!checkCredential) {
+//             return res.status(411).send({
+//                 message: "Invalid username or password"
+//             })
+//         }
+
+//         var token = jwt.sign({ username: req.body.UserName }, "jwtPassword");
+//         return res.json({
+//             token,
+//         });
+//     }
+// })
+
 router.post("/user/signin", async (req, res) => {
-    //doing the zod validation
-    const sucess = schema_signin.safeParse(req.body);
-    if (!sucess) {
+    const success = schema_signin.safeParse(req.body); // Validate the request body
+    if (!success) {
         return res.status(411).json({
             message: "Error while logging in"
-        })
-    }
-    else {
-        const checkCredential = await User.find({
-            UserName: req.body.UserName,
-            password: req.body.password
-        })
-        if (!checkCredential) {
-            return res.status(411).send({
-                message: "Error while logging in"
-            })
-        }
-
-        var token = jwt.sign({ username: req.body.UserName }, "jwtPassword");
-        return res.json({
-            token,
         });
     }
-})
+    const checkCredential = await User.findOne({ // Check if the user exists
+        UserName: req.body.UserName,
+        password: req.body.password
+    });
+    if (!checkCredential) {
+        return res.status(411).send({
+            message: "Invalid username or password"
+        });
+    }
+
+    // Sign token with user ID
+    var token = jwt.sign({ username: req.body.UserName, userId: checkCredential._id }, "jwtPassword");
+    return res.json({
+        token,
+        user: checkCredential // Return the user object including _id
+    });
+});
 
 // now creating a Route to get users from the backend, filterable via firstName/lastName
-const getSchema = zod.object({
-    password: zod.string().min(6).optional(),
-    firstName: zod.string().optional(),
-    lastName: zod.string().optional(),
-})
 
-router.get("/user/bulk", async (req, res) => {
-    const filter = req.query.filter || "";
 
-    const users = await User.find({
-        $or: [{
-            firstName: {
-                "$regex": filter
-            }
-        }, {
-            lastName: {
-                "$regex": filter
-            }
-        }]
-    })
+router.get("/get-user", async (req, res) => {
 
-    res.json({
-        user: users.map(user => ({
-            UserName: user.UserName,
-            _id: user._id
-        }))
-    })
-})
+    const users = await User.find(req.query); // Find users based on query parameters
+    res.json(users);
+});
 
 
 export default router;
